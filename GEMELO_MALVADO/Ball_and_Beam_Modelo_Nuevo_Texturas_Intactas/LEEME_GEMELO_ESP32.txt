@@ -1,0 +1,117 @@
+BALL AND BEAM - GEMELO DIGITAL RAYLIB + ESP32
+==============================================
+
+OBJETIVO
+--------
+Este programa NO reemplaza ni modifica el controlador de la ESP32.
+La ESP32 sigue controlando el estabilizador real con el firmware entregado.
+Raylib solamente lee los datos reales y mueve el modelo 3D para reflejarlos.
+
+DATOS QUE USA RAYLIB
+--------------------
+1. Posicion del carrito:
+   La telemetria normal del firmware entrega:
+
+   Ref: 17.0 | pos: 15.8 | err: 1.2 | Estado: LQI
+
+   Raylib toma pos y la convierte del recorrido util 0..34 cm al recorrido
+   seguro del carrito dentro del modelo 3D.
+
+2. Angulo del servo:
+   La telemetria ordinaria NO incluye el angulo. Por eso raylib usa el
+   comando STATUS que YA existe en el firmware. La ESP32 responde con una
+   linea que contiene:
+
+   angulo_orden=83.00
+
+   No se modifica el firmware para obtenerlo.
+
+DESFASE DE 7 GRADOS
+-------------------
+El firmware considera 83 grados como neutro. En el montaje real, ese valor
+corresponde a la manivela horizontal debido al desfase mecanico aproximado
+de 7 grados.
+
+El modelo 3D usa 90 grados como posicion horizontal, por eso solo para el
+dibujo se usa:
+
+   angulo_visual = angulo_orden_ESP32 + 7 grados
+
+Ejemplo:
+
+   ESP32 = 83 grados
+   Gemelo visual = 90 grados
+
+El dato original de la ESP32 nunca se modifica.
+
+CONEXION
+--------
+1. Conectar la ESP32 a la PC mediante un cable USB de datos.
+2. Revisar el puerto COM asignado en Windows o PlatformIO.
+3. Abrir ball_and_beam_gemelo_esp32.c.
+4. Buscar:
+
+   #define PUERTO_ESP32 "COM5"
+
+5. Cambiar COM5 por el puerto real, por ejemplo COM3, COM7, etc.
+6. Cerrar PlatformIO Serial Monitor o Arduino Serial Monitor.
+   Solo un programa puede usar el puerto COM al mismo tiempo.
+7. Compilar y ejecutar el programa raylib.
+
+No se necesita instalar una biblioteca serial adicional. El programa usa la
+API serial de Windows directamente.
+
+CONTROLES
+---------
+M       cambia entre modo ESP32 y modo manual.
+C       cierra y vuelve a abrir el puerto COM.
+F5      envia START a la ESP32.
+F6      envia STOP a la ESP32.
+A / D   mueve el mecanismo solamente en modo manual.
+Flechas mueven el ensamble en X/Z.
+Page Up / Page Down mueven el ensamble en Y.
+Q / E   giran el ensamble.
+Mouse izquierdo orbita la camara.
+Rueda   zoom.
+TAB     muestra/oculta panel.
+R       restablece la vista y posicion visual.
+
+IMPORTANTE SOBRE START Y STOP
+-----------------------------
+El firmware entregado arranca PAUSADO. Raylib NO envia START automaticamente.
+F5 y F6 simplemente utilizan los comandos START y STOP que ya existen en el
+firmware. No se envia SP ni PULSE desde este programa.
+
+STATUS Y FRECUENCIA
+-------------------
+Por defecto raylib pide STATUS cada 0.25 s para conocer el angulo del servo.
+Esto se define en:
+
+   #define PERIODO_STATUS_S 0.25
+
+Se eligio una frecuencia moderada para no llenar el Serial con diagnosticos.
+Si se observa que STATUS afecta el comportamiento temporal del controlador,
+aumentar a 0.50 s. Si el hardware demuestra que funciona estable y se desea
+mas refresco visual, puede reducirse con cuidado.
+
+MOVIMIENTO DEL CARRITO
+----------------------
+En modo ESP32 el carrito YA NO depende artificialmente del angulo del servo.
+Su posicion viene directamente de pos_cm de la telemetria real.
+
+Esto permite representar correctamente situaciones donde el servo ya cambio
+pero el carrito continua desplazandose por la dinamica real del sistema.
+
+MODO MANUAL
+-----------
+Si la ESP32 no esta conectada, presionar M para usar modo manual. A/D permiten
+probar la cinematica y el carrito se mueve de forma simulada solo para fines
+de visualizacion.
+
+NOTA TECNICA
+------------
+El valor angulo_orden que devuelve STATUS es la ultima posicion que el firmware
+ordeno al servo. El paquete entregado indica que esta rama supone seguimiento
+ideal y no usa una medicion fisica del eje para ese campo. Para el gemelo esto
+es suficiente mientras lo que se quiera representar sea la posicion ordenada
+por el controlador.

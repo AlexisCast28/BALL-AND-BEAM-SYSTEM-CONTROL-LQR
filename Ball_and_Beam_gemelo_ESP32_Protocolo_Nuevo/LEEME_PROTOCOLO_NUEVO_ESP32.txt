@@ -1,0 +1,49 @@
+BALL AND BEAM - GEMELO DIGITAL / PROTOCOLO ESP32 2026-11-23
+
+Este codigo NO modifica el firmware de la ESP32.
+
+CONEXION
+1. Conecta la ESP32 por USB de datos.
+2. Cierra PlatformIO Serial Monitor / Arduino Serial Monitor / interfaz Python.
+   Solo un programa puede usar el mismo COM.
+3. En el .c cambia:
+       #define PUERTO_ESP32 "COM5"
+   por el COM real de Windows.
+4. Ejecuta raylib.
+
+SECUENCIA AUTOMATICA AL ABRIR EL COM
+    STOP
+    APP
+    STATUS
+
+La ESP32 debe contestar:
+    # APP READY v=1 min=2 max=31 latido_ms=1000
+
+CONTROLES
+F5 = RUN
+     Reenvia primero la referencia que la propia ESP32 reporta y despues RUN.
+     Mientras RUN esta activo, raylib envia PING cada 250 ms.
+
+F6 = STOP
+     Detiene el control y los PING. La ESP32 manda el servo a neutro.
+
+F7 = STATUS
+     Pide diagnostico manual.
+
+M = alternar ESP32 / MANUAL
+C = reconectar COM
+A/D = mover servo solo en modo MANUAL
+
+MOVIMIENTO DEL GEMELO
+- pos recibido de ESP32 mueve el carrito.
+- ang recibido durante RUN mueve el mecanismo.
+- El valor visual usa +7 grados:
+      angulo_visual = angulo_orden_ESP32 + 7
+  porque el firmware usa 83 grados de neutro y el modelo 3D usa 90 grados
+  como posicion horizontal.
+
+SEGURIDAD DEL PROTOCOLO
+- Si raylib deja de mandar PING por mas de ~1 s, la ESP32 debe abortar
+  y mandar el servo a neutro.
+- Al cerrar raylib se envia STOP antes de cerrar el puerto.
+- No se usa START para esta integracion. El protocolo nuevo usa RUN.
